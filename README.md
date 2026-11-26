@@ -115,7 +115,7 @@ for inputs, targets, mask in train_dl:
 
 Use `nn.CrossEntropyLoss(ignore_index=-100)` so padded targets are skipped.
 
-| Shape | Notes |
+| | Shape | Notes |
 |---|---|---|
 | `inputs` | `(32, 256)` | Token ids |
 | `targets` | `(32, 256)` | `inputs` shifted by one position, -100 for padding |
