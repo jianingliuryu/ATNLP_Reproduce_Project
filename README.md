@@ -14,6 +14,8 @@ language model from scratch, pretrain it on the BabyLM Strict-Small dataset
 | `train_tokenizer.py` | Trains the byte-level BPE tokenizer (Task 2) |
 | `data_loader.py` | Encodes BabyLM, builds chunks and training and validation DataLoaders (Task 2) |
 | `babylm_bpe-vocab.json`, `babylm_bpe-merges.txt` | The trained tokenizer (used for training and BLiMP) |
+| `tokenizer and data loader workbook + sanity checks.ipynb` | Tokenizer and data loader development notebook with sanity checks (Task 2) |
+| `tokenizer and data loader workbook draft.py` | Process of converting the tokenizer and data loader workbook to .py files (Task 2) |
 | TODO | Training and evaluation scripts (Task 3) |
 
 ## Requirements
@@ -71,33 +73,28 @@ Run all cells in `atnlp26_27-transformer-question.ipynb`:
 
 ## Task 2: Tokenizer and data
 
-**Important: run all scripts from the repo's root folder.** This ensures that Python finds and uses our trained tokenizer.
+**All scripts must be run from the repo's root folder** to ensure that Python finds and uses our trained tokenizer.
 
 ### Tokenizer
 
-`train_tokenizer.py` trains a byte-level BPE tokenizer from scratch on the BabyLM Strict-Small training text (vocabulary size 8000, special tokens `<pad>` = id 0 and `<|endoftext|>` = id 1). 
+`train_tokenizer.py` trains a byte-level BPE tokenizer from scratch. It is trained on the BabyLM Strict-Small training text with a vocabulary size of 8000. Also, it uses the special tokens `<pad>` (ID 0) and `<|endoftext|>` (ID 1). 
 
 It writes two files:
 - `babylm_bpe-vocab.json`
 - `babylm_bpe-merges.txt`
 
-**These files are already included in the repo, so you do not need to run
-`train_tokenizer.py`.** Retraining may produce a different vocabulary, and
-the BLiMP evaluation (Experiment 2) must use the exact tokenizer the model
-was trained with. If you do retrain, you must also retrain the model.
+**It is important that these are kept together in the repository**. The tokenizer would produce incorrect IDs and you e.g. use the vocab from one run of training and merges from another.
+
+**Do not run `train_tokenizer.py`.** 
+The files are already committed to the repository, so you do not have to run the file. Also, you may produce a different vocabulary if you retrain. In Experiment 2, we must use the precise tokenizer our model was trained on. Therefore, retraining the tokenizer means you also must retrain the model.
 
 ### Data loader
 
 `data_loader.py` turns the dataset into batches for training:
 
-1. Loads the BabyLM Strict-Small training split from Hugging Face (needs
-   internet on the first run).
-2. Encodes every row with the tokenizer and appends `<|endoftext|>` after each
-   row, giving one long stream of token ids.
-3. Cuts the stream into chunks of 256 tokens (meeting the `MAX_SEQUENCE_LENGTH` requirement). Long
-   inputs are split across chunks instead of truncated, so every token is
-   used. The final chunk is padded and its padded targets are set to -100 so
-   the loss ignores them.
+1. Loads the BabyLM Strict-Small training split from Hugging Face.
+2. Encodes every row with the tokenizer and appends `<|endoftext|>` after each row, giving one long stream of token ids.
+3. Cuts the stream into chunks of 256 tokens (meeting the `MAX_SEQUENCE_LENGTH` requirement). Long inputs are split across chunks instead of truncated, so every token is used. The final chunk is padded and its padded targets are set to -100 so the loss ignores them.
 4. Randomly holds out 5% of the chunks for validation (seed 42).
 5. Wraps the chunks in DataLoaders with batch size 32.
 
@@ -133,9 +130,6 @@ python data_loader.py
 This prints the batch shapes, checks that targets are the inputs shifted by
 one, and checks that all ids fit the vocabulary.
 
-### Detailed, commented code with sanity checks
-
-We include a more detailed description of the code for the tokenizer and data loader in `tokenizer and data loader workbook + sanity checks.ipynb`
 
 ## Task 3: Experiments
 
