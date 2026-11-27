@@ -77,37 +77,42 @@ Run all cells in `atnlp26_27-transformer-question.ipynb`:
 
 ### Tokenizer
 
-`train_tokenizer.py` trains a byte-level BPE tokenizer from scratch. It is trained on the BabyLM Strict-Small training text with a vocabulary size of 8000. Also, it uses the special tokens `<pad>` (ID 0) and `<|endoftext|>` (ID 1). 
+`train_tokenizer.py` trains a byte-level BPE tokenizer from scratch. It is trained on the BabyLM Strict-Small training text with a vocabulary size of 8000 - as outlined in Assignment 2. Also, it uses the special tokens `<pad>` (given ID 0) and `<|endoftext|>` (given ID 1). 
 
 It writes two files:
 - `babylm_bpe-vocab.json`
 - `babylm_bpe-merges.txt`
 
-**It is important that these are kept together in the repository**. The tokenizer would produce incorrect IDs and you e.g. use the vocab from one run of training and merges from another.
+**It is important that these are kept together in the repository**. The tokenizer would produce incorrect IDs if you e.g. use the vocab from one run of training and merges from another.
 
 **Do not run `train_tokenizer.py`.** 
 The files are already committed to the repository, so you do not have to run the file. Also, you may produce a different vocabulary if you retrain. In Experiment 2, we must use the precise tokenizer our model was trained on. Therefore, retraining the tokenizer means you also must retrain the model.
 
 ### Data loader
 
-`data_loader.py` turns the dataset into batches for training:
+`data_loader.py` turns the dataset into batches suitable for training:
 
-1. Loads the BabyLM Strict-Small training split from Hugging Face.
-2. Encodes every row with the tokenizer and appends `<|endoftext|>` after each row, giving one long stream of token ids.
-3. Cuts the stream into chunks of 256 tokens (meeting the `MAX_SEQUENCE_LENGTH` requirement). Long inputs are split across chunks instead of truncated, so every token is used. The final chunk is padded and its padded targets are set to -100 so the loss ignores them.
-4. Randomly holds out 5% of the chunks for validation (seed 42).
-5. Wraps the chunks in DataLoaders with batch size 32.
+1. Loads the BabyLM Strict-Small training split from the Hugging Face platform.
+2. Encodes every row with the tokenizer and appends `<|endoftext|>` after each row, giving one long stream of token IDs. The long stream of token IDs takes a few seconds to produce. Therefore, one may consider saving the results.
+3. Cuts the stream into chunks of 256 tokens (meeting the `MAX_SEQUENCE_LENGTH` requirement). Long inputs are split across chunks instead of truncated. Hence, every token is used. The final chunk is padded and its padded targets are set to -100 so the loss ignores them; we want to train the model on "real" tokens.
+4. Randomly holds out 5% of the chunks for validation. Here, we use seed 42 to ensure reproducibility.
+5. Wraps the chunks in DataLoaders with batch size 32, that is, 32 chunks make 1 batch.
 
 ### Usage
 
 ```python
+# everything is inside functions
 from data_loader import get_dataloaders
 
 train_dl, val_dl, tokenizer = get_dataloaders()
+# we need the tokenizer for BLiMP
 
 for inputs, targets, mask in train_dl:
-    logits = model(inputs, mask)
-    loss = criterion(logits.reshape(-1, vocab_size), targets.reshape(-1))
+    logits = model(inputs, mask) # the forward pass, returning logits of [32, 256, 8000]
+    loss = criterion(logits.reshape(-1, vocab_size), targets.reshape(-1)) # compares predictions with the targets
+
+# each pass through the loop yields one batch
+
 ```
 
 Use `nn.CrossEntropyLoss(ignore_index=-100)` so padded targets are skipped.
@@ -118,9 +123,6 @@ Use `nn.CrossEntropyLoss(ignore_index=-100)` so padded targets are skipped.
 | `targets` | `(32, 256)` | `inputs` shifted by one position, -100 for padding |
 | `mask` | `(32, 1, 1, 256)` | `True` = real token, `False` = padding |
 
-Each call to `get_dataloaders()` re-encodes the corpus, which takes a few
-seconds, so call it once per script.
-
 ### Quick check
 
 ```
@@ -128,8 +130,7 @@ python data_loader.py
 ```
 
 This prints the batch shapes, checks that targets are the inputs shifted by
-one, and checks that all ids fit the vocabulary.
-
+one, and checks that all IDs fit the vocabulary.
 
 ## Task 3: Experiments
 
